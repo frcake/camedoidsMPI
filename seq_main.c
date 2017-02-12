@@ -137,8 +137,6 @@ int main(int argc, char **argv) {
 
     objects = file_read(input_file, &numObjs, &numCoords, lines_to_skip,
                         attr_to_skip);
-
-    // printf("\n Rank %d , Calculating Slice Size: %d", my_rank, sliceSize);
     if (objects == NULL)
       return -1;
 
@@ -155,10 +153,7 @@ int main(int argc, char **argv) {
   extraObjs = numObjs % size;
   sliceSize = numObjs / size;
   sliceSizeExt = (numObjs / size) + extraObjs;
-  /*printf("\n-------Slicing statistics---------\n\n\n\nExtraObjects : %d \t "
-         "sliceSize: %d \t sliceSizeExt: %d \n---------End of statistics "
-         "-------\n\n\n\n",
-         extraObjs, sliceSize, sliceSizeExt);*/
+
   double(*subArray)[numCoords] = malloc(sizeof(double[(sliceSize)][numCoords]));
   double(*medoids)[numCoords] =
       malloc(sizeof(double[(numclusters)][numCoords]));
@@ -172,9 +167,6 @@ int main(int argc, char **argv) {
   displs = calloc(size, sizeof(int));
   recvcount = calloc(size, sizeof(int));
   REDUCEBUFSIZE = (int *)calloc(numclusters, sizeof(int));
-  /* medoids = (double **)malloc(numclusters * sizeof(double *));
-   for (i = 0; i < numclusters; i++)
-     medoids[i] = (double *)malloc(numCoords * sizeof(double));*/
   double(*cluster_distance_sum)[numCoords] =
       malloc(sizeof(double[(numclusters)][numCoords]));
   double(*clusters_means)[numCoords] =
@@ -229,8 +221,6 @@ int main(int argc, char **argv) {
 
     MPI_Recv(subArray, sliceSize * numCoords, MPI_DOUBLE, target, 10,
              MPI_COMM_WORLD, &status);
-
-    /* [numClusters][numCoords]  cluster's distance sum */
   }
 
   // COLLECTIVE COMMUNICATION!
@@ -254,37 +244,19 @@ int main(int argc, char **argv) {
           seq_camedoids2(sliceSizeExt, numCoords, subArrayFext, numclusters,
                          clusteridFext, clusterSize, medoids, &dlt, &flag);
       delta = dlt;
-      /*printf("\n********************* RANK %d DELTA: %d**************\n",
-             my_rank, delta);*/
-
-      /*MPI_Allreduce(cluster_distance_sum, REDUCEBUF, numclusters * numCoords,
-                    MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);*/
 
     } else if (my_rank > 0 && my_rank < size) {
-
-      /* [numClusters][numCoords]  cluster's distance sum */
-
       cluster_distance_sum =
           seq_camedoids2(sliceSize, numCoords, subArray, numclusters, clusterid,
                          clusterSize, medoids, &dlt, &flag);
-      // print_array(cluster_distance_sum, numclusters, numCoords, my_rank);
       delta = dlt;
-      /*printf("\n********************* RANK %d DELTA: %d**************\n",
-             my_rank, delta);*/
     }
     MPI_Allreduce(cluster_distance_sum, REDUCEBUF, numclusters * numCoords,
                   MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
     MPI_Allreduce(clusterSize, REDUCEBUFSIZE, numclusters, MPI_INT, MPI_SUM,
                   MPI_COMM_WORLD);
-    /*if (my_rank == 0) {
-      print_array(REDUCEBUF, numclusters, numCoords, my_rank);
-    }*/
-    /*if (my_rank == 0) {
-      print_array_1d_int(REDUCEBUFSIZE, numclusters, 1, my_rank);
-    }*/
-    // print_array_1d_int(REDUCEBUFSIZE, numclusters, 1, my_rank);
+
     if (my_rank == 0) {
-      //  print_array(cluster_distance_sum, numclusters, numCoords, my_rank);
       for (int qq = 0; qq < numclusters; qq++) {
         if (REDUCEBUFSIZE[qq] > 1) {
           for (k = 0; k < numCoords; k++)
@@ -303,10 +275,7 @@ int main(int argc, char **argv) {
     if (my_rank == 0) {
       distanceFext = mean_distance(sliceSizeExt, numCoords, subArrayFext,
                                    clusteridFext, REDUCEBUF);
-      /*for (i = 0; i < numclusters; i++) {
-        for (j = 0; j < numCoords; j++)
-          REDUCEBUF[i][j] = 0;
-      }*/
+
       for (int dcounter = 1; dcounter < size; dcounter++) {
         recvcount[dcounter] = sliceSize;
         displs[dcounter] = dcounter * sliceSize + extraObjs;
@@ -314,10 +283,7 @@ int main(int argc, char **argv) {
       recvcount[0] = sliceSizeExt;
       displs[0] = 0;
     } else if (my_rank > 0 && my_rank < size) {
-      /* for (i = 0; i < numclusters; i++) {
-         for (j = 0; j < numCoords; j++)
-           REDUCEBUF[i][j] = 0;
-       }*/
+
       distance =
           mean_distance(sliceSize, numCoords, subArray, clusterid, REDUCEBUF);
     }
@@ -340,12 +306,8 @@ int main(int argc, char **argv) {
 
     MPI_Barrier(MPI_COMM_WORLD);
 
-    // print_array_1d(REDUCEBUFSIZE, numclusters, 1, my_rank);
-
-    // print_array(REDUCEBUF, numclusters, numCoords, my_rank);
-
     if (my_rank == 0) {
-      // print_array_1d_int(clusteridAll, numObjs, 1, my_rank);
+
       seq_camedoids(numObjs, numCoords, objects, numclusters, numCands,
                     clusteridAll, medoids, distanceAll, sumdelta);
     }
@@ -359,18 +321,11 @@ int main(int argc, char **argv) {
       }
     }
 
-    // MPI_Bcast(&sumdelta, 1, MPI_INT, 0, MPI_COMM_WORLD);
-
-    /*MPI_Bcast(&sumdelta, 1, MPI_INT, 0, MPI_COMM_WORLD);*/
     if (sumdelta == 0) {
       break;
     }
   }
-  /*if (my_rank == 0) {
-    for (i = 0; i < numObjs; i++) {
-      printf("%d \n", clusteridAll[i]);
-    }
-  }*/
+
   if (my_rank == 0) {
 
     gettimeofday(&t1, 0);

@@ -194,11 +194,9 @@ seq_camedoids2(int numObjs /*eg 100k no. objects */,
 
   for (i = 0; i < numObjs; i++) {
     /* find the array index of nearest cluster center */
-    /* printf("\n numObjs : %d numClusters : %d , numCoords : %d , i : %d\n",
-            numObjs, numClusters, numCoords, i);*/
 
     index = find_nearest_cluster(numClusters, numCoords, i, objects, clusters);
-    // printf("%d,", index);
+
     /* if membership changes, increase delta by 1 */
     if (membership[i] != index) {
       *delta += 1.0;
@@ -304,16 +302,8 @@ the mean of its cluster*/
   error = 0;
   /*ALLOCATIONS END*/
 
-  /*for (i = 0; i < numObjs; i++)
-    membership[i] = -1;*/
-
-  /*do {
-
-    delta = 0;
-    error = 0;*/
-
   /*PARALLEL PART ENDS HERE*/
-  // printf("\nDELTA IN SEQ %d", delta);
+
   /* find nCands candidates for every cluster  */
 
   for (i = 0; i < numObjs; i++) {
@@ -386,19 +376,6 @@ the mean of its cluster*/
     for (j = 0; j < numCoords; j++)
       clusters[i][j] = final_cand[i][pos][j];
   }
-  /* printf("\n");
-   for (i = 0; i < numClusters; i++) {
-     for (j = 0; j < numCoords; j++) {
-       printf("%f,", clusters[i][j]);
-     }
-     printf("\n");
-   }*/
-
-  /* initialize for the next loop*/
-  /*for (i = 0; i < numClusters; i++) {
-    for (j = 0; j < numCoords; j++)
-      clusters_means[i][j] = 0;
-  }*/
 
   for (j = 0; j < numClusters; j++) {
     cand[j] = 0;
